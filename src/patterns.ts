@@ -6,28 +6,29 @@ import { KeywordPattern, FileType, NodeType } from './types';
 export class KeywordPatterns {
     /**
      * CREATE OR REPLACE PACKAGE 模式
+     * 支持普通标识符、双引号标识符及可选 schema 前缀
      */
-    static readonly CREATE_PACKAGE = /^\s*CREATE\s+OR\s+REPLACE\s+PACKAGE\s+(\w+)\s*(?:AS|IS)?\s*$/i;
+    static readonly CREATE_PACKAGE = /^\s*CREATE\s+OR\s+REPLACE\s+PACKAGE\s+(?!BODY\b)(?:(?:"[^"]+"|[\w$#]+)\.)*(?:"[^"]+"|\w[\w$#]*)\s*(?:AS|IS)?\s*$/i;
 
     /**
      * CREATE OR REPLACE PACKAGE BODY 模式
      */
-    static readonly CREATE_PACKAGE_BODY = /^\s*CREATE\s+OR\s+REPLACE\s+PACKAGE\s+BODY\s+(\w+)\s*(?:AS|IS)?\s*$/i;
+    static readonly CREATE_PACKAGE_BODY = /^\s*CREATE\s+OR\s+REPLACE\s+PACKAGE\s+BODY\s+(?:(?:"[^"]+"|[\w$#]+)\.)*(?:"[^"]+"|\w[\w$#]*)\s*(?:AS|IS)?\s*$/i;
 
     /**
      * CREATE OR REPLACE FUNCTION 模式
      */
-    static readonly CREATE_FUNCTION = /^\s*CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+(\w+)/i;
+    static readonly CREATE_FUNCTION = /^\s*CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+(?:(?:"[^"]+"|[\w$#]+)\.)*(?:"[^"]+"|\w[\w$#]*)/i;
 
     /**
      * CREATE OR REPLACE PROCEDURE 模式
      */
-    static readonly CREATE_PROCEDURE = /^\s*CREATE\s+(?:OR\s+REPLACE\s+)?PROCEDURE\s+(\w+)/i;
+    static readonly CREATE_PROCEDURE = /^\s*CREATE\s+(?:OR\s+REPLACE\s+)?PROCEDURE\s+(?:(?:"[^"]+"|[\w$#]+)\.)*(?:"[^"]+"|\w[\w$#]*)/i;
 
     /**
      * CREATE OR REPLACE TRIGGER 模式
      */
-    static readonly CREATE_TRIGGER = /^\s*CREATE\s+OR\s+REPLACE\s+TRIGGER\s+(\w+)/i;
+    static readonly CREATE_TRIGGER = /^\s*CREATE\s+OR\s+REPLACE\s+TRIGGER\s+(?:(?:"[^"]+"|[\w$#]+)\.)*(?:"[^"]+"|\w[\w$#]*)/i;
 
     /**
      * 内部函数/过程声明模式
@@ -205,6 +206,8 @@ export class FileTypeDetector {
                 return FileType.PACKAGE_HEADER;
             case 'pkb':
                 return FileType.PACKAGE_BODY;
+            case 'pck':
+                return FileType.UNKNOWN; // 包含 header + body，通过内容检测
             case 'prc':
                 return FileType.STANDALONE_PROCEDURE;
             case 'fnc':

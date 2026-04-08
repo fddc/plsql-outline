@@ -381,6 +381,8 @@ export class PLSQLParser {
 
     /**
      * 匹配CREATE语句 - 优化版本
+     * 支持普通标识符、双引号标识符及可选的 schema 前缀
+     * 例: PKG_NAME / "PKG_NAME" / APPS.PKG_NAME / "APPS"."PKG_NAME"
      */
     private matchCreateStatement(line: string): { type: NodeType; name: string } | null {
         // 使用缓存的正则表达式结果
@@ -392,30 +394,49 @@ export class PLSQLParser {
 
         let result: { type: NodeType; name: string } | null = null;
 
+        // 从匹配结果中提取对象名（去除引号和 schema 前缀）
+        // group[1] = 引号内的名称, group[2] = 无引号的名称
+        const extractName = (m: RegExpMatchArray): string =>
+            (m[1] || m[2] || '').replace(/"/g, '');
+
+        // 标识符模式：支持可选 schema 前缀（带或不带引号）
+        // 匹配: XXCUST_TEST_PKG / "XXCUST_TEST_PKG" / APPS.PKG / "APPS"."PKG"
+        const idPat = String.raw`(?:(?:"[^"]+"|[\w$#]+)\.)*(?:"([^"]+)"|([\w][\w$#]*))`;
+
         // CREATE OR REPLACE PACKAGE BODY (必须先匹配，因为包含PACKAGE关键字)
-        let match = line.match(/^\s*CREATE\s+(?:OR\s+REPLACE\s+)?PACKAGE\s+BODY\s+(\w+)/i);
+        let match = line.match(
+            new RegExp(String.raw`^\s*CREATE\s+(?:OR\s+REPLACE\s+)?PACKAGE\s+BODY\s+` + idPat, 'i')
+        );
         if (match) {
-            result = { type: NodeType.PACKAGE_BODY, name: match[1] };
+            result = { type: NodeType.PACKAGE_BODY, name: extractName(match) };
         } else {
             // CREATE OR REPLACE PACKAGE (不包含BODY)
-            match = line.match(/^\s*CREATE\s+(?:OR\s+REPLACE\s+)?PACKAGE\s+(?!BODY\s)(\w+)/i);
+            match = line.match(
+                new RegExp(String.raw`^\s*CREATE\s+(?:OR\s+REPLACE\s+)?PACKAGE\s+(?!BODY\b)` + idPat, 'i')
+            );
             if (match) {
-                result = { type: NodeType.PACKAGE_HEADER, name: match[1] };
+                result = { type: NodeType.PACKAGE_HEADER, name: extractName(match) };
             } else {
                 // CREATE OR REPLACE FUNCTION
-                match = line.match(/^\s*CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+(\w+)/i);
+                match = line.match(
+                    new RegExp(String.raw`^\s*CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+` + idPat, 'i')
+                );
                 if (match) {
-                    result = { type: NodeType.FUNCTION, name: match[1] };
+                    result = { type: NodeType.FUNCTION, name: extractName(match) };
                 } else {
                     // CREATE OR REPLACE PROCEDURE
-                    match = line.match(/^\s*CREATE\s+(?:OR\s+REPLACE\s+)?PROCEDURE\s+(\w+)/i);
+                    match = line.match(
+                        new RegExp(String.raw`^\s*CREATE\s+(?:OR\s+REPLACE\s+)?PROCEDURE\s+` + idPat, 'i')
+                    );
                     if (match) {
-                        result = { type: NodeType.PROCEDURE, name: match[1] };
+                        result = { type: NodeType.PROCEDURE, name: extractName(match) };
                     } else {
                         // CREATE OR REPLACE TRIGGER
-                        match = line.match(/^\s*CREATE\s+(?:OR\s+REPLACE\s+)?TRIGGER\s+(\w+)/i);
+                        match = line.match(
+                            new RegExp(String.raw`^\s*CREATE\s+(?:OR\s+REPLACE\s+)?TRIGGER\s+` + idPat, 'i')
+                        );
                         if (match) {
-                            result = { type: NodeType.TRIGGER, name: match[1] };
+                            result = { type: NodeType.TRIGGER, name: extractName(match) };
                         }
                     }
                 }
