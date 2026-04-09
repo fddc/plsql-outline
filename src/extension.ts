@@ -641,7 +641,7 @@ export class PLSQLOutlineExtension {
         
         // 从配置中获取支持的文件扩展名
         const config = vscode.workspace.getConfiguration('plsql-outline');
-        const configuredExtensions = config.get<string[]>('fileExtensions', ['.sql', '.fnc', '.fcn', '.prc', '.pks', '.pkb', '.typ']);
+        const configuredExtensions = config.get<string[]>('fileExtensions', ['.sql', '.fnc', '.fcn', '.prc', '.pks', '.pkb', '.pck', '.typ']);
         
         // 检查文件扩展名
         return configuredExtensions.some(ext => fileName.endsWith(ext.toLowerCase()));
@@ -900,7 +900,7 @@ export function activate(context: vscode.ExtensionContext): void {
             const fileName = document.fileName.toLowerCase();
             
             if (languageId === 'plsql' || languageId === 'sql' || 
-                ['.sql', '.pks', '.pkb', '.prc', '.fnc', '.trg'].some(ext => fileName.endsWith(ext))) {
+                ['.sql', '.pks', '.pkb', '.pck', '.prc', '.fnc', '.trg'].some(ext => fileName.endsWith(ext))) {
                 
                 // 延迟执行，确保扩展完全激活
                 setTimeout(() => {
